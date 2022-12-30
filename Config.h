@@ -8,8 +8,8 @@ const int mapWidth = 14, mapHeight = mapWidth;
 const int mapSizeHeight = mapHeight * sqSide, mapSizeWidth = mapWidth * sqSide;
 
 //initial viewer current position and orientation
-int xC = int(5.6f * sqSide);
-int yC = int(1.1f * sqSide);
-int angleC = 200;
+int xC = int(2.5f * sqSide);
+int yC = int(2.5f * sqSide);
+int angleC = 10;
 
 #define sq(x) ((x)*(x))

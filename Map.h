@@ -1,6 +1,7 @@
 #pragma once
 
 //the maze will be rendered up side down
+//it's because the map's CS is left handed while the ray casting works right handed
 
 int Map[mapHeight][mapWidth] = {
 {11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11},
