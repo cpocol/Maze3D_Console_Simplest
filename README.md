@@ -1,6 +1,8 @@
 # Maze3D_Console_Simplest
-3D Rendering done with 100 lines of C/C++ code, in console:
+3D rendering done with 100 lines of C/C++ code, in console:
 ![Snapshot](/Snapshot.png)
+
+Technique: ray casting.
 
 Prepared to be opened with:
 - MS Visual Studio

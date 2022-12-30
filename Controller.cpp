@@ -10,19 +10,19 @@
 
 void loopController(int& x, int& y, int& angle, int around)
 {
-	float rad = angle * 6.2831f / around;
-	if (_kbhit()) { //check user's input
-		unsigned char ch = _getch();
-		if (ch == 27) //ASCII code for the Esc key
-			exit(0); //end the game
-		if (tolower(ch) == 'w') { //the up arrow key => pedal forward
+    float rad = angle * 6.2831f / around;
+    if (_kbhit()) { //check user's input
+        unsigned char ch = _getch();
+        if (ch == 27) //ASCII code for the Esc key
+            exit(0); //end the game
+        if (tolower(ch) == 'w') { //the up arrow key => pedal forward
             x += int(MOVE_SPD * cos(rad));
             y += int(MOVE_SPD * sin(rad));
-		}
-		if (tolower(ch) == 's') { //the down arrow key => pedal backward
+        }
+        if (tolower(ch) == 's') { //the down arrow key => pedal backward
             x -= int(MOVE_SPD * cos(rad));
             y -= int(MOVE_SPD * sin(rad));
-		}
+        }
         if (tolower(ch) == 'a') { //strafe left
             x += int(MOVE_SPD * cos(rad + 1.57));
             y += int(MOVE_SPD * sin(rad + 1.57));
@@ -31,12 +31,12 @@ void loopController(int& x, int& y, int& angle, int around)
             x += int(MOVE_SPD * cos(rad - 1.57));
             y += int(MOVE_SPD * sin(rad - 1.57));
         }
-		if (ch == 224) { //it's a key that generates two bytes when being pressed, the first one being 224
-			ch = _getch();
-			if (ch == 75) //the left arrow key => do turn left
+        if (ch == 224) { //it's a key that generates two bytes when being pressed, the first one being 224
+            ch = _getch();
+            if (ch == 75) //the left arrow key => do turn left
                 angle = (angle + ROTATE_SPD) % around;
-			if (ch == 77) //the right arrow key => do turn right
+            if (ch == 77) //the right arrow key => do turn right
                 angle = (angle - ROTATE_SPD + around) % around;
-		}
-	} //if (_kbhit())
+        }
+    } //if (_kbhit())
 }
