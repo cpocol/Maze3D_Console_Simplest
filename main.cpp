@@ -9,42 +9,38 @@
 char screen[screenH][screenW + 1] = {{0}}; //we'll paint everything in this matrix, then flush it onto the real screen
 char Texture[sqSide*sqSide];
 
-void CastX(int xC, int yC, int ang, int* xS, int* yS) { //   hit vertical walls ||
+void CastX(int xC, int yC, int ang, int& xHit, int& yHit) { //   hit vertical walls ||
     //prepare as for 1st or 4th quadrant
-    int x = (xC / sqSide) * sqSide + sqSide,   dx = sqSide,   adjXMap = 0;
+    xHit = (xC / sqSide) * sqSide + sqSide;
+	int dx = sqSide,   adjXMap = 0;
     int dy = int(sqSide * tanf(ang * 3.1416f / aroundh));
     if ((aroundq < ang) && (ang < 3 * aroundq)) { //2nd or 3rd quadrant
-        x -= sqSide;
+        xHit -= sqSide;
         adjXMap = -1;
         dx = -dx;
         dy = -dy;
     }
-    int y = yC + int((x - xC) * tanf(ang * 3.1416f / aroundh));
+    yHit = yC + int((xHit - xC) * tanf(ang * 3.1416f / aroundh));
 
-    while ((0 < x) && (x < mapSizeWidth) && (0 < y) && (y < mapSizeHeight) && (Map[y / sqSide][x / sqSide + adjXMap] == 0))
-        x += dx, y += dy;
-
-    *xS = x;
-    *yS = y;
+    while ((0 < xHit) && (xHit < mapSizeWidth) && (0 < yHit) && (yHit < mapSizeHeight) && (Map[yHit / sqSide][xHit / sqSide + adjXMap] == 0))
+        xHit += dx, yHit += dy;
 }
 
-void CastY(int xC, int yC, int ang, int* xS, int* yS) { //   hit horizontal walls ==
+void CastY(int xC, int yC, int ang, int& xHit, int& yHit) { //   hit horizontal walls ==
     //prepare as for 1st or 2nd quadrant
-    int y = (yC / sqSide) * sqSide + sqSide,   dy = sqSide,   adjYMap = 0;
+    yHit = (yC / sqSide) * sqSide + sqSide;
+	int dy = sqSide,   adjYMap = 0;
     int dx = int(sqSide / tanf(ang * 3.1416f / aroundh));
     if (ang > aroundh) { //3rd or 4th quadrants
-        y -= sqSide;
+        yHit -= sqSide;
         adjYMap = -1;
         dy = -dy;
         dx = -dx;
     }
-    int x = xC + int((y - yC) / tanf(ang * 3.1416f / aroundh));
+    xHit = xC + int((yHit - yC) / tanf(ang * 3.1416f / aroundh));
 
-    while ((0 < x) && (x < mapSizeWidth) && (0 < y) && (y < mapSizeHeight) && (Map[y / sqSide + adjYMap][x / sqSide] == 0))
-        x += dx, y += dy;
-
-    *xS = x;
-    *yS = y;
+    while ((0 < xHit) && (xHit < mapSizeWidth) && (0 < yHit) && (yHit < mapSizeHeight) && (Map[yHit / sqSide + adjYMap][xHit / sqSide] == 0))
+        xHit += dx, yHit += dy;
 }
 
 void Render() {
@@ -55,8 +51,8 @@ void Render() {
         int xHit, yHit, xY, yY;
         int ang = (screenWh - col + angleC + around) % around;
         ang += (ang % aroundq == 0) ? 1 : 0; //avoid infinite slope
-        CastX(xC, yC, ang, &xHit, &yHit);
-        CastY(xC, yC, ang, &xY, &yY);
+        CastX(xC, yC, ang, xHit, yHit);
+        CastY(xC, yC, ang, xY, yY);
         if (abs(xC - xY) < abs(xC - xHit)) //choose the nearest hit point
             xHit = xY, yHit = yY;
 
