@@ -7,40 +7,42 @@
 #include "Map.h"
 
 char screen[screenH][screenW + 1] = {{0}}; //we'll paint everything in this matrix, then flush it onto the real screen
-char Texture[sqSide*sqSide];
+char Texture[sqSize*sqSize];
 
-void CastX(int xC, int yC, int ang, int& xHit, int& yHit) { //   hit vertical walls ||
+void CastX(int xC, int yC, int angle, int& xHit, int& yHit) { //   hit vertical walls ||
     //prepare as for 1st or 4th quadrant
-    xHit = (xC / sqSide) * sqSide + sqSide;
-	int dx = sqSide,   adjXMap = 0;
-    int dy = int(sqSide * tanf(ang * 3.1416f / aroundh));
-    if ((aroundq < ang) && (ang < 3 * aroundq)) { //2nd or 3rd quadrant
-        xHit -= sqSide;
+    xHit = (xC / sqSize) * sqSize + sqSize;
+	int dx = sqSize,   adjXMap = 0;
+    float dy = sqSize * tanf(angle * 3.1416f / aroundh);
+    if ((aroundq < angle) && (angle < around3q)) { //2nd or 3rd quadrant
+        xHit -= sqSize;
         adjXMap = -1;
         dx = -dx;
         dy = -dy;
     }
-    yHit = yC + int((xHit - xC) * tanf(ang * 3.1416f / aroundh));
+    float fyHit = yC + (xHit - xC) * tanf(angle * 3.1416f / aroundh);
 
-    while ((0 < xHit) && (xHit < mapSizeWidth) && (0 < yHit) && (yHit < mapSizeHeight) && (Map[yHit / sqSide][xHit / sqSide + adjXMap] == 0))
-        xHit += dx, yHit += dy;
+	while ((0 < xHit) && (xHit < mapSizeWidth) && (0 < fyHit) && (fyHit < mapSizeHeight) && (Map[int(fyHit / sqSize)][xHit / sqSize + adjXMap] == 0))
+        xHit += dx, fyHit += dy;
+	yHit = (int)fyHit;
 }
 
-void CastY(int xC, int yC, int ang, int& xHit, int& yHit) { //   hit horizontal walls ==
+void CastY(int xC, int yC, int angle, int& xHit, int& yHit) { //   hit horizontal walls ==
     //prepare as for 1st or 2nd quadrant
-    yHit = (yC / sqSide) * sqSide + sqSide;
-	int dy = sqSide,   adjYMap = 0;
-    int dx = int(sqSide / tanf(ang * 3.1416f / aroundh));
-    if (ang > aroundh) { //3rd or 4th quadrants
-        yHit -= sqSide;
+    yHit = (yC / sqSize) * sqSize + sqSize;
+	int dy = sqSize,   adjYMap = 0;
+    float dx = sqSize / tanf(angle * 3.1416f / aroundh);
+    if (angle > aroundh) { //3rd or 4th quadrants
+        yHit -= sqSize;
         adjYMap = -1;
         dy = -dy;
         dx = -dx;
     }
-    xHit = xC + int((yHit - yC) / tanf(ang * 3.1416f / aroundh));
+    float fxHit = xC + (yHit - yC) / tanf(angle * 3.1416f / aroundh);
 
-    while ((0 < xHit) && (xHit < mapSizeWidth) && (0 < yHit) && (yHit < mapSizeHeight) && (Map[yHit / sqSide + adjYMap][xHit / sqSide] == 0))
-        xHit += dx, yHit += dy;
+    while ((0 < fxHit) && (fxHit < mapSizeWidth) && (0 < yHit) && (yHit < mapSizeHeight) && (Map[yHit / sqSize + adjYMap][int(fxHit / sqSize)] == 0))
+        fxHit += dx, yHit += dy;
+	xHit = (int)fxHit;
 }
 
 void Render() {
@@ -56,18 +58,18 @@ void Render() {
         if (abs(xC - xY) < abs(xC - xHit)) //choose the nearest hit point
             xHit = xY, yHit = yY;
 
-        int h = int(sqSide * sqrt((viewerToScreen_sq + sq(screenWh - col)) / (float)(sq(xC - xHit) + sq(yC - yHit))));
-        int Dh_fp = (sqSide << 10) / h; //1 row in screen space represents this many rows in texture space; use 10 bits fixed point
+        int h = int(sqSize * sqrt((viewerToScreen_sq + sq(screenWh - col)) / (float)(sq(xC - xHit) + sq(yC - yHit))));
+        int Dh_fp = (sqSize << 10) / h; //1 row in screen space represents this many rows in texture space; use 10 bits fixed point
         int textureRow_fp = 0;
         int minRow = screenHh - h / 2;
+        int maxRow = min(minRow + h, screenH);
         if (minRow < 0) {
             textureRow_fp = -minRow * Dh_fp;
             minRow = 0;
         }
-        int maxRow = min(screenHh + h / 2, screenH);
 
         for (int row = minRow; row < maxRow; row++, textureRow_fp += Dh_fp)
-            screen[row][col] = *(Texture + (textureRow_fp >> 10) * sqSide + (xHit + yHit) % sqSide); //textureColumn = (xHit + yHit) % sqSide
+            screen[row][col] = *(Texture + (textureRow_fp >> 10) * sqSize + (xHit + yHit) % sqSize); //textureColumn = (xHit + yHit) % sqSize
     }
 
     for (int row = 0; row < screenH; row++)
@@ -82,9 +84,9 @@ void Render() {
 
 int main() {
     //generate texture
-    for (int i = 0; i < sqSide; i++)
-        for (int j = 0; j < sqSide; j++)
-            *(Texture + i*sqSide + j) = ((0.1*sqSide < i) && (i < 0.7*sqSide) && (0.2*sqSide < j) && (j < 0.8*sqSide)) ? 'O' : '*';
+    for (int i = 0; i < sqSize; i++)
+        for (int j = 0; j < sqSize; j++)
+            *(Texture + i*sqSize + j) = ((0.1*sqSize < i) && (i < 0.7*sqSize) && (0.2*sqSize < j) && (j < 0.8*sqSize)) ? 'O' : '*';
 
     while (1) {
         Render();
