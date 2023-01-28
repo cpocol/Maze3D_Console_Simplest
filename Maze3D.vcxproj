@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="Config.h" />
     <ClInclude Include="Controller.h" />
+    <ClInclude Include="main.h" />
     <ClInclude Include="Map.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>

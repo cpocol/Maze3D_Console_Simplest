@@ -10,6 +10,7 @@ Prepared to be opened with:
 How to control the viewer:
 - A, S, D, W: to move forward/backward and strafe left/right
 - Left arrow, right arrow: to rotate left/right
+- E, C: jump, crunch
 
 (handling key pressing implemented for Windows only so far)
 

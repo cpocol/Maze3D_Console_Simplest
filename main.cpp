@@ -7,42 +7,43 @@
 #include "Map.h"
 
 char screen[screenH][screenW + 1] = {{0}}; //we'll paint everything in this matrix, then flush it onto the real screen
-char Texture[sqSize*sqSize];
+char Texture[sqRes*sqRes];
+int xC = int(2.5f * sqRes), yC = int(2.5f * sqRes), angleC = 10, elevation_perc = 0; //viewer Current position, orientation and elevation_perc
 
 void CastX(int xC, int yC, int angle, int& xHit, int& yHit) { //   hit vertical walls ||
     //prepare as for 1st or 4th quadrant
-    xHit = (xC / sqSize) * sqSize + sqSize;
-	int dx = sqSize,   adjXMap = 0;
-    float dy = sqSize * tanf(angle * 3.1416f / aroundh);
+    xHit = (xC / sqRes) * sqRes + sqRes;
+    int dx = sqRes,   adjXMap = 0;
+    float dy = sqRes * tanf(angle * 3.1416f / aroundh);
     if ((aroundq < angle) && (angle < around3q)) { //2nd or 3rd quadrant
-        xHit -= sqSize;
+        xHit -= sqRes;
         adjXMap = -1;
         dx = -dx;
         dy = -dy;
     }
     float fyHit = yC + (xHit - xC) * tanf(angle * 3.1416f / aroundh);
 
-	while ((0 < xHit) && (xHit < mapSizeWidth) && (0 < fyHit) && (fyHit < mapSizeHeight) && (Map[int(fyHit / sqSize)][xHit / sqSize + adjXMap] == 0))
+    while ((0 < xHit) && (xHit < mapSizeWidth) && (0 < fyHit) && (fyHit < mapSizeHeight) && (Map[int(fyHit / sqRes)][xHit / sqRes + adjXMap] == 0))
         xHit += dx, fyHit += dy;
-	yHit = (int)fyHit;
+    yHit = (int)fyHit;
 }
 
 void CastY(int xC, int yC, int angle, int& xHit, int& yHit) { //   hit horizontal walls ==
     //prepare as for 1st or 2nd quadrant
-    yHit = (yC / sqSize) * sqSize + sqSize;
-	int dy = sqSize,   adjYMap = 0;
-    float dx = sqSize / tanf(angle * 3.1416f / aroundh);
+    yHit = (yC / sqRes) * sqRes + sqRes;
+    int dy = sqRes,   adjYMap = 0;
+    float dx = sqRes / tanf(angle * 3.1416f / aroundh);
     if (angle > aroundh) { //3rd or 4th quadrants
-        yHit -= sqSize;
+        yHit -= sqRes;
         adjYMap = -1;
         dy = -dy;
         dx = -dx;
     }
     float fxHit = xC + (yHit - yC) / tanf(angle * 3.1416f / aroundh);
 
-    while ((0 < fxHit) && (fxHit < mapSizeWidth) && (0 < yHit) && (yHit < mapSizeHeight) && (Map[yHit / sqSize + adjYMap][int(fxHit / sqSize)] == 0))
+    while ((0 < fxHit) && (fxHit < mapSizeWidth) && (0 < yHit) && (yHit < mapSizeHeight) && (Map[yHit / sqRes + adjYMap][int(fxHit / sqRes)] == 0))
         fxHit += dx, yHit += dy;
-	xHit = (int)fxHit;
+    xHit = (int)fxHit;
 }
 
 void Render() {
@@ -58,18 +59,18 @@ void Render() {
         if (abs(xC - xY) < abs(xC - xHit)) //choose the nearest hit point
             xHit = xY, yHit = yY;
 
-        int h = int(sqSize * sqrt((viewerToScreen_sq + sq(screenWh - col)) / (float)(sq(xC - xHit) + sq(yC - yHit))));
-        int Dh_fp = (sqSize << 10) / h; //1 row in screen space represents this many rows in texture space; use 10 bits fixed point
+        int h = int(sqRes * sqrt((viewerToScreen_sq + sq(screenWh - col)) / (float)(sq(xC - xHit) + sq(yC - yHit) + 1))); //+1 avoids division by zero
+        int Dh_fp = (sqRes << 10) / h; //1 row in screen space represents this many rows in texture space; use fixed point
         int textureRow_fp = 0;
-        int minRow = screenHh - h / 2;
+        int minRow = ((100 - elevation_perc) * (2 * screenHh - h) / 2 + elevation_perc * screenHh) / 100;
         int maxRow = min(minRow + h, screenH);
-        if (minRow < 0) {
-            textureRow_fp = -minRow * Dh_fp;
+        if (minRow < 0) { //clip
+            textureRow_fp = -(minRow * Dh_fp);
             minRow = 0;
         }
 
         for (int row = minRow; row < maxRow; row++, textureRow_fp += Dh_fp)
-            screen[row][col] = *(Texture + (textureRow_fp >> 10) * sqSize + (xHit + yHit) % sqSize); //textureColumn = (xHit + yHit) % sqSize
+            screen[row][col] = *(Texture + (textureRow_fp >> 10) * sqRes + (xHit + yHit) % sqRes); //textureColumn = (xHit + yHit) % sqRes
     }
 
     for (int row = 0; row < screenH; row++)
@@ -84,14 +85,13 @@ void Render() {
 
 int main() {
     //generate texture
-    for (int i = 0; i < sqSize; i++)
-        for (int j = 0; j < sqSize; j++)
-            *(Texture + i*sqSize + j) = ((0.1*sqSize < i) && (i < 0.7*sqSize) && (0.2*sqSize < j) && (j < 0.8*sqSize)) ? 'O' : '*';
+    for (int i = 0; i < sqRes; i++)
+        for (int j = 0; j < sqRes; j++)
+            *(Texture + i*sqRes + j) = ((0.1*sqRes < i) && (i < 0.7*sqRes) && (0.2*sqRes < j) && (j < 0.8*sqRes)) ? 'O' : '*';
 
-    while (1) {
-        Render();
-        loopController(xC, yC, angleC, around);
-    }
+    while (1)
+        if (loopController(xC, yC, angleC, around))
+            Render();
 
     return 0;
 }
