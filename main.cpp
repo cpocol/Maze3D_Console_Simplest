@@ -62,7 +62,7 @@ void Render() {
         int h = int(sqRes * sqrt((viewerToScreen_sq + sq(screenWh - col)) / float(sq(xC - xHit) + sq(yC - yHit) + 1))); // +1 avoids division by zero
         int Dh_fp = (sqRes << 10) / h; // 1 row in screen space represents this many rows in texture space; use fixed point
         int textureRow_fp = 0;
-        int minRow = ((100 - elevation_perc) * (2 * screenHh - h) / 2 + elevation_perc * screenHh) / 100;
+        int minRow = ((100 - elevation_perc) * (2 * screenHh - h) / 2 + elevation_perc * screenHh) / 100; //no elev: minRow = screenHh - h / 2;
         int maxRow = min(minRow + h, screenH);
         if (minRow < 0) { // clip
             textureRow_fp = -(minRow * Dh_fp);

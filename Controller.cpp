@@ -18,8 +18,48 @@ int acceleratedMotion[200];
 int maxJump_idx, maxCrunch_idx;
 int verticalAdvance = 0;
 int jumping = 0, crunching = 0;
-int z = 0; //same unit as sqRes
+int zC = 0; //same unit as sqRes
 static clock_t keyTime = clock();
+
+HANDLE hIn;
+HWND hWnd;
+bool wndHasFocus = true;
+//mouse cursor reference position
+int refMousePosX = screenWh * 8, refMousePosY = screenH * 16 - 8;
+
+int initController() {
+    float fDist = 0, fSpeed = 0, G = 981.f * sqRes / 50; //G was empirically chosen as we don't have a proper world scale here
+    for (int i = 0; i < 200; i++) {
+        acceleratedMotion[i] = (int)fDist;
+
+        fSpeed += G / fFPS;
+        fDist += fSpeed / fFPS;
+    }
+
+    //search for the acceleratedMotion entry so that we'll decelerate to zero speed at max jump height
+    for (maxJump_idx = 0; maxJump_idx < 200; maxJump_idx++)
+        if (acceleratedMotion[maxJump_idx] > maxJumpHeight)
+            break;
+
+    if (maxJump_idx >= 200) maxJump_idx = 199;
+
+    elevation_perc = 100 * zC / sqResh; //as percentage from wall half height
+
+    //init mouse input
+    hIn = GetStdHandle(STD_INPUT_HANDLE);
+    SetConsoleMode(hIn, ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT);
+
+    wchar_t windowTitle[1000];
+    GetConsoleTitle(windowTitle, 1000);
+    hWnd = FindWindow(NULL, windowTitle);
+
+    //set cursor to a reference position
+    POINT mousePoint = {refMousePosX, refMousePosY};
+    ClientToScreen(hWnd, &mousePoint);
+    SetCursorPos(mousePoint.x, mousePoint.y);
+
+    return 0;
+}
 
 //returns wall ID (as map position and cell face)
 int Cast(int angle, int& xHit, int& yHit) {
@@ -72,36 +112,15 @@ void move(int& x, int& y, int angle) {
         x = xTest, y = yTest;
 }
 
-void rotate(int& angle, int dir, int around) {
-    angle = (angle + dir * ROTATE_SPD + around) % around;
-}
-
-int initController() {
-    float fDist = 0, fSpeed = 0, G = 8000.f * sqRes / 200; //G was empirically chosen as we don't have a proper world scale here
-    for (int i = 0; i < 200; i++) {
-        acceleratedMotion[i] = (int)fDist;
-
-        fSpeed += G / fFPS;
-        fDist += fSpeed / fFPS;
-    }
-
-    //search for the acceleratedMotion entry so that we'll decelerate to zero speed at max jump height
-    for (maxJump_idx = 0; maxJump_idx < 200; maxJump_idx++)
-        if (acceleratedMotion[maxJump_idx] > maxJumpHeight)
-            break;
-
-    if (maxJump_idx >= 200) maxJump_idx = 199;
-
-    elevation_perc = 100 * z / sqResh; //as percentage from wall half height
-
-    return 0;
+void rotate(int& angle, int dir, int around, int rotate_spd = ROTATE_SPD) {
+    angle = (angle + dir * rotate_spd + around) % around;
 }
 
 int loopController(int& x, int& y, int& angle, int around) {
     static int firstTime = 1;
     if (firstTime) {
         firstTime = 0;
-        return 1; //render first frame
+        return 1; //always render first frame
     }
 
     int sign = 1;
@@ -110,6 +129,40 @@ int loopController(int& x, int& y, int& angle, int around) {
 #endif
 
     int did = 0;
+
+    //check the mouse (and focus)
+    INPUT_RECORD InputRecord[128];
+    DWORD RecordsRead = 0;
+    GetNumberOfConsoleInputEvents(hIn, &RecordsRead);
+    if (RecordsRead > 0)
+        ReadConsoleInput(hIn, InputRecord, RecordsRead, &RecordsRead);
+
+    for (DWORD i = 0; i < RecordsRead; i++) {
+        if (InputRecord[i].EventType == FOCUS_EVENT) {
+            wndHasFocus = InputRecord[i].Event.FocusEvent.bSetFocus;
+        }
+        if (InputRecord[i].EventType == MOUSE_EVENT) {
+            if(InputRecord[i].Event.MouseEvent.dwEventFlags == MOUSE_MOVED) {
+                //int mousePosX = InputRecord[i].Event.MouseEvent.dwMousePosition.X; //char level accuracy
+                POINT mousePoint;
+                GetCursorPos(&mousePoint);
+                ScreenToClient(hWnd, &mousePoint);
+                int mousePosX = mousePoint.x; //get pixel level accuracy
+
+                rotate(angle, (refMousePosX - mousePosX) / 2 * sign, around, 1);
+
+                //reset cursor to the reference position
+                POINT refMousePoint = {refMousePosX, refMousePosY};
+                ClientToScreen(hWnd, &refMousePoint);
+                SetCursorPos(refMousePoint.x, refMousePoint.y);
+
+                did = 1;
+            }
+        }
+    }
+        
+    if (!wndHasFocus)
+        return 0;
 
 #ifdef USE_MULTIPLE_KEYS_SIMULTANEOUSLY
     {
@@ -143,7 +196,7 @@ int loopController(int& x, int& y, int& angle, int around) {
             jumping = 1;
             verticalAdvance = 1;
             jump_idx = maxJump_idx - 1;
-            z = maxJumpHeight - acceleratedMotion[jump_idx];
+            zC = maxJumpHeight - acceleratedMotion[jump_idx];
             did = 1;
         }
         else
@@ -151,19 +204,19 @@ int loopController(int& x, int& y, int& angle, int around) {
             if (verticalAdvance > 0) {
                 if (jump_idx > 0) {
                     jump_idx--;
-                    z = maxJumpHeight - acceleratedMotion[jump_idx];
+                    zC = maxJumpHeight - acceleratedMotion[jump_idx];
                 }
                 else {
                     verticalAdvance = -1;
-                    z = maxJumpHeight;
+                    zC = maxJumpHeight;
                 }
                 did = 1;
             }
             else
             if (verticalAdvance < 0) {
-                if (z > 0) {
+                if (zC > 0) {
                     jump_idx++;
-                    z = max(0, maxJumpHeight - acceleratedMotion[jump_idx]);
+                    zC = max(0, maxJumpHeight - acceleratedMotion[jump_idx]);
                 }
                 else {
                     verticalAdvance = 0;
@@ -176,24 +229,24 @@ int loopController(int& x, int& y, int& angle, int around) {
         //crunch
         if (((ch == 'C') || (GetAsyncKeyState('C') & 0x8000)) && !jumping) {
             crunching = 1;
-            if (z > maxCrunchHeight) {
-                z -= VERTICAL_SPD;
-                if (z < maxCrunchHeight)
-                    z = maxCrunchHeight;
+            if (zC > maxCrunchHeight) {
+                zC -= VERTICAL_SPD;
+                if (zC < maxCrunchHeight)
+                    zC = maxCrunchHeight;
                 did = 1;
             }
         }
         else
         if (crunching) {
-            z += VERTICAL_SPD;
-            if (z >= 0) {
-                z = 0;
+            zC += VERTICAL_SPD;
+            if (zC >= 0) {
+                zC = 0;
                 crunching = 0;
             }
             did = 1;
         }
         
-        elevation_perc = 100 * z / sqResh; //as percentage from wall half height
+        elevation_perc = 100 * zC / sqResh; //as percentage from wall half height
 
 #ifdef USE_MULTIPLE_KEYS_SIMULTANEOUSLY
         {

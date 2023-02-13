@@ -1,5 +1,6 @@
-# Maze3D_Console_Simplest (ray casting)
-3D rendering done with 100 lines of C/C++ code, in console:
+# Maze3D_Console_Simplest (ray casting - same as Wolfenstein 3D)
+3D rendering in console/command prompt/ASCII
+Done within 100 lines of C/C++ code:
 
 ![Snapshot](/Snapshot.png)
 
