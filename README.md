@@ -2,7 +2,7 @@
 3D rendering in console/command prompt/ASCII
 Done within 100 lines of C/C++ code:
 
-![Snapshot](/Snapshot.png)
+![Snapshot](/Snapshot.gif)
 
 Prepared to be opened with:
 - MS Visual Studio
